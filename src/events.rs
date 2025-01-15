@@ -40,5 +40,5 @@ pub fn handle_events(selected_index: &mut Option<usize>, file_count: usize) -> R
         // handle other events
         _ => {}
     }
-    Ok(AppState::Quit)
+    Ok(AppState::KeepOpen)
 }
