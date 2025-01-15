@@ -1,12 +1,20 @@
 use ratatui::{
-    text::Text,
+    text::{Line, Span, Text},
     style::{Color, Style},
     layout::{Constraint, Layout},
     widgets::{Block, Clear, List, ListItem, ListState, Paragraph},
     Frame,
 };
 
+use syntect::{
+    easy::HighlightLines,
+    highlighting::ThemeSet,
+    parsing::SyntaxSet,
+    util::LinesWithEndings,
+};
+
 use std::{fs, path::Path};
+use std::process::Command;
 use walkdir::WalkDir;
 
 use crate::events::handle_events;
@@ -22,6 +30,49 @@ fn list_files(repo_path: &Path) -> Vec<String> {
         }
     }
     files
+}
+
+// Highlight file content using syntect
+fn highlight_file_content(file_path: &str) -> Result<Text> {
+    // Load syntax definitions and theme
+    let ps = SyntaxSet::load_defaults_newlines();
+    let ts = ThemeSet::load_defaults();
+    let theme = &ts.themes["base16-ocean.dark"]; // Choose a theme
+
+    // Find the syntax for the file
+    let syntax = ps.find_syntax_for_file(file_path)?
+        .unwrap_or_else(|| ps.find_syntax_plain_text());
+
+    // Create a highlighter
+    let mut h = HighlightLines::new(syntax, theme);
+
+    // Read the file content
+    let content = fs::read_to_string(file_path)?;
+
+    // Highlight the content
+    let mut highlighted_lines = Vec::new();
+    for line in LinesWithEndings::from(&content) {
+        let ranges = h.highlight_line(line, &ps)?;
+        let spans = ranges
+            .into_iter()
+            .map(|(style, text)| {
+                Span::styled(
+                    text.to_string(),
+                    Style::default()
+                        .fg(Color::Rgb(style.foreground.r, style.foreground.g, style.foreground.b))
+                        .bg(Color::Rgb(style.background.r, style.background.g, style.background.b)),
+                )
+            })
+            .collect::<Vec<_>>();
+        highlighted_lines.push(Line::from(spans));
+    }
+
+    Ok(Text::from(highlighted_lines))
+}
+
+fn draw_on_clear(frame: &mut Frame, area: ratatui::layout::Rect, content: Paragraph) {
+    frame.render_widget(Clear, area);
+    frame.render_widget(content, area);
 }
 
 fn draw(frame: &mut Frame, files: &[String], selected_index: Option<usize>) {
@@ -46,23 +97,24 @@ fn draw(frame: &mut Frame, files: &[String], selected_index: Option<usize>) {
     list_state.select(selected_index);
     frame.render_stateful_widget(list, left_area, &mut list_state);
 
-    // Render the file preview
-    if let Some(index) = selected_index {
+    // Render the file preview (if a file is selected)
+    let preview_content = if let Some(index) = selected_index {
         if let Some(file) = files.get(index) {
-            let content = fs::read_to_string(file).unwrap_or_else(|_| "Unable to read file".to_string());
-            let paragraph = Paragraph::new(Text::from(content))
-                .block(Block::bordered().title("File Preview"));
-            frame.render_widget(paragraph, right_area);
+            match highlight_file_content(file) {
+                Ok(highlighted_text) => Paragraph::new(highlighted_text),
+                Err(_) => Paragraph::new("Unable to highlight file"),
+            }
+        } else {
+            Paragraph::new("No file selected")
         }
     } else {
-        let paragraph = Paragraph::new("No file selected")
-            .block(Block::bordered().title("File Preview"));
-        frame.render_widget(paragraph, right_area);
+        Paragraph::new("No file selected")
     }
-}
+    .block(Block::bordered().title("File Preview"));
 
-#[allow(dead_code)]
-fn draw_on_clear() {}
+    // Draw the preview content on a cleared area
+    draw_on_clear(frame, right_area, preview_content);
+}
 
 pub fn run(terminal: &mut ratatui::DefaultTerminal) -> Result<()> {
     let files = list_files(Path::new(".")); // List files in the current directory
@@ -70,8 +122,41 @@ pub fn run(terminal: &mut ratatui::DefaultTerminal) -> Result<()> {
 
     loop {
         terminal.draw(|frame| draw(frame, &files, selected_index))?;
+
         if handle_events(&mut selected_index, files.len())? {
+            if let Some(index) = selected_index {
+                if let Some(file) = files.get(index) {
+                    // Spawn neovim as a child process
+                    let mut child = Command::new("nvim")
+                        .arg(file)
+                        .spawn()
+                        .expect("Failed to open file in neovim");
+
+                    // Wait for the editor to close
+                    child.wait().expect("Failed to wait for neovim");
+                }
+            }
             break Ok(());
         }
+
+        //match handle_events(&mut selected_index, files.len())? {
+        //    AppState::Quit => {
+        //        break Ok(());
+        //    }
+        //    AppState::KeepOpen => {
+        //        if let Some(index) = selected_index {
+        //        if let Some(file) = files.get(index) {
+        //            // Spawn neovim as a child process
+        //            let mut child = Command::new("nvim")
+        //                .arg(file)
+        //                .spawn()
+        //                .expect("Failed to open file in neovim");
+        //
+        //                // Wait for the editor to close
+        //                child.wait().expect("Failed to wait for neovim");
+        //            }
+        //        }
+        //    }
+        //}
     }
 }

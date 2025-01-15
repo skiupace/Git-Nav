@@ -1,6 +1,13 @@
 use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use crate::common::Result;
 
-type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+
+#[allow(dead_code)]
+#[derive(PartialEq)]
+pub enum AppState {
+    KeepOpen,
+    Quit
+}
 
 pub fn handle_events(selected_index: &mut Option<usize>, file_count: usize) -> Result<bool> {
     match event::read()? {
@@ -19,6 +26,9 @@ pub fn handle_events(selected_index: &mut Option<usize>, file_count: usize) -> R
                         *selected_index = Some(*index + 1);
                     }
                 }
+            }
+            KeyCode::Enter => {
+                return Ok(true);
             }
             _ => {}
         },
