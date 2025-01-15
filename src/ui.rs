@@ -60,7 +60,7 @@ fn highlight_file_content(file_path: &str) -> Result<Text> {
                     text.to_string(),
                     Style::default()
                         .fg(Color::Rgb(style.foreground.r, style.foreground.g, style.foreground.b))
-                        .bg(Color::Rgb(style.background.r, style.background.g, style.background.b)),
+                        .bg(Color::Reset),
                 )
             })
             .collect::<Vec<_>>();
@@ -112,32 +112,15 @@ fn draw(frame: &mut Frame, files: &[String], selected_index: Option<usize>) {
     }
     .block(Block::bordered().title("File Preview"));
 
-    // Draw the preview content on a cleared area
     draw_on_clear(frame, right_area, preview_content);
 }
 
 pub fn run(terminal: &mut ratatui::DefaultTerminal) -> Result<()> {
-    let files = list_files(Path::new(".")); // List files in the current directory
-    let mut selected_index = Some(0); // Start with the first file selected_index
+    let files = list_files(Path::new("."));
+    let mut selected_index = Some(0);
 
     loop {
         terminal.draw(|frame| draw(frame, &files, selected_index))?;
-
-        //if handle_events(&mut selected_index, files.len())? {
-        //    if let Some(index) = selected_index {
-        //        if let Some(file) = files.get(index) {
-        //            // Spawn neovim as a child process
-        //            let mut child = Command::new("nvim")
-        //                .arg(file)
-        //                .spawn()
-        //                .expect("Failed to open file in neovim");
-        //
-        //            // Wait for the editor to close
-        //            child.wait().expect("Failed to wait for neovim");
-        //        }
-        //    }
-        //    break Ok(());
-        //}
 
         match handle_events(&mut selected_index, files.len())? {
             AppState::Quit => {
