@@ -17,7 +17,7 @@ use std::{fs, path::Path};
 use std::process::Command;
 use walkdir::WalkDir;
 
-use crate::events::handle_events;
+use crate::events::{handle_events, AppState};
 use crate::common::Result;
 
 
@@ -123,28 +123,8 @@ pub fn run(terminal: &mut ratatui::DefaultTerminal) -> Result<()> {
     loop {
         terminal.draw(|frame| draw(frame, &files, selected_index))?;
 
-        if handle_events(&mut selected_index, files.len())? {
-            if let Some(index) = selected_index {
-                if let Some(file) = files.get(index) {
-                    // Spawn neovim as a child process
-                    let mut child = Command::new("nvim")
-                        .arg(file)
-                        .spawn()
-                        .expect("Failed to open file in neovim");
-
-                    // Wait for the editor to close
-                    child.wait().expect("Failed to wait for neovim");
-                }
-            }
-            break Ok(());
-        }
-
-        //match handle_events(&mut selected_index, files.len())? {
-        //    AppState::Quit => {
-        //        break Ok(());
-        //    }
-        //    AppState::KeepOpen => {
-        //        if let Some(index) = selected_index {
+        //if handle_events(&mut selected_index, files.len())? {
+        //    if let Some(index) = selected_index {
         //        if let Some(file) = files.get(index) {
         //            // Spawn neovim as a child process
         //            let mut child = Command::new("nvim")
@@ -152,11 +132,35 @@ pub fn run(terminal: &mut ratatui::DefaultTerminal) -> Result<()> {
         //                .spawn()
         //                .expect("Failed to open file in neovim");
         //
-        //                // Wait for the editor to close
-        //                child.wait().expect("Failed to wait for neovim");
-        //            }
+        //            // Wait for the editor to close
+        //            child.wait().expect("Failed to wait for neovim");
         //        }
         //    }
+        //    break Ok(());
         //}
+
+        match handle_events(&mut selected_index, files.len())? {
+            AppState::Quit => {
+                break Ok(());
+            }
+
+            AppState::OpenNvim => {
+                if let Some(index) = selected_index {
+                    if let Some(file) = files.get(index) {
+                        // Spawn neovim as a child process
+                        let mut child = Command::new("nvim")
+                            .arg(file)
+                            .spawn()
+                            .expect("Failed to open file in neovim");
+
+                        // Wait for the editor to close
+                        child.wait().expect("Failed to wait for neovim");
+                    }
+                    break Ok(());
+                }
+            }
+
+            AppState::KeepOpen => {}
+        }
     }
 }
