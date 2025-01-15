@@ -15,7 +15,7 @@ use syntect::{
 
 use std::{fs, path::Path};
 use std::process::Command;
-use walkdir::WalkDir;
+use ignore::WalkBuilder;
 
 use crate::events::{handle_events, AppState};
 use crate::common::Result;
@@ -23,12 +23,28 @@ use crate::common::Result;
 
 fn list_files(repo_path: &Path) -> Vec<String> {
     let mut files = Vec::new();
-    for entry in WalkDir::new(repo_path) {
-        let entry = entry.unwrap();
-        if entry.file_type().is_file() {
-            files.push(entry.path().to_string_lossy().to_string());
+
+    // Use the `ignore` crate to walk the directory and exclude .gitignore content + .git
+    for result in WalkBuilder::new(repo_path)
+        .hidden(false)
+        .git_ignore(true)
+        .filter_entry(|entry| {
+            !entry.path().to_string_lossy().contains(".git")
+        })
+        .build()
+    {
+        match result {
+            Ok(entry) => {
+                if entry.file_type().map(|ft| ft.is_file()).unwrap_or(false) {
+                    files.push(entry.path().to_string_lossy().to_string());
+                }
+            }
+            Err(err) => {
+                eprintln!("Error walking directory: {}", err);
+            }
         }
     }
+
     files
 }
 
