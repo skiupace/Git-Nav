@@ -20,6 +20,7 @@ use crate::files::{
 use crate::events::{handle_events, AppState};
 use crate::common::Result;
 
+use crossterm::terminal;
 
 fn draw_on_clear(frame: &mut Frame, area: Rect, content: Paragraph) {
     frame.render_widget(Clear, area);
@@ -115,13 +116,21 @@ pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, rep
                 if let Some(index) = selected_index {
                     if let Some(file) = items.get(index) {
                         if file.is_file() {
-                            // Spawn neovim as a child process
+                            // Save terminal state
+                            terminal.clear()?;
+                            terminal::disable_raw_mode()?;
+                            terminal.show_cursor()?;
+
+                            // Spawn nvim and wait for it to complete
                             Command::new("nvim")
                                 .arg(file.to_str().unwrap_or(""))
-                                .spawn()
-                                .expect("Failed to open file in neovim")
-                                .wait()
-                                .expect("Failed to wait for neovim");
+                                .status()
+                                .expect("Failed to open file in neovim");
+
+                            // Restore terminal state
+                            terminal::enable_raw_mode()?;
+                            terminal.hide_cursor()?;
+                            terminal.clear()?;
                         } else if file.is_dir() {
                             // Navigate into the folder
                             history.push(current_path.clone());

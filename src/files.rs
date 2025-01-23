@@ -104,4 +104,3 @@ pub fn highlight_file_content(file_path: &str) -> Result<Text> {
 
     Ok(Text::from(highlighted_lines))
 }
-

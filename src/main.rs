@@ -1,17 +1,6 @@
-mod ui;
-mod files;
-mod events;
-mod common;
-
-use ui::run;
 use std::env;
-use common::Result;
-
-#[allow(unused_imports)]
-use events::handle_events;
-
-#[allow(unused_imports)]
-use files::is_git_repo;
+use git_tui::ui::run;
+use git_tui::common::Result;
 
 
 fn main() -> Result<()> {
