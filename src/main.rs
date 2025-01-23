@@ -1,7 +1,7 @@
 mod ui;
+mod files;
 mod events;
 mod common;
-mod folders_and_files_handler;
 
 use ui::run;
 use std::env;
@@ -11,7 +11,7 @@ use common::Result;
 use events::handle_events;
 
 #[allow(unused_imports)]
-use folders_and_files_handler::is_git_repo;
+use files::is_git_repo;
 
 
 fn main() -> Result<()> {

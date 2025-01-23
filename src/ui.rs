@@ -9,13 +9,14 @@ use ratatui::{
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::folders_and_files_handler::{
+use crate::files::{
     is_git_repo, 
     get_name, 
     get_icon, 
     list_files_and_folders, 
     highlight_file_content
 };
+
 use crate::events::{handle_events, AppState};
 use crate::common::Result;
 
