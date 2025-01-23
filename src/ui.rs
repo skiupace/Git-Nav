@@ -8,6 +8,7 @@ use ratatui::{
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use crossterm::terminal;
 
 use crate::files::{
     is_git_repo, 
@@ -20,7 +21,6 @@ use crate::files::{
 use crate::events::{handle_events, AppState};
 use crate::common::Result;
 
-use crossterm::terminal;
 
 fn draw_on_clear(frame: &mut Frame, area: Rect, content: Paragraph) {
     frame.render_widget(Clear, area);
@@ -95,7 +95,7 @@ pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, rep
     let path = Path::new(repo_path);
 
     if !is_git_repo(path) {
-        return Err(format!("The path provided is not a valid Git repository: {}", repo_path).into());
+        return Err(format!("Not a git repository: {}", repo_path).into());
     }
 
     let mut current_path = path.to_path_buf();

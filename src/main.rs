@@ -1,18 +1,21 @@
 use std::env;
+use std::path::PathBuf;
+
 use git_tui::ui::run;
 use git_tui::common::Result;
 
 
 fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
-
-    if args.len() < 2 {
-        eprintln!("Usage: {} <path-to-git-repo>", args[0]);
-        std::process::exit(1);
-    } let repo_path = &args[1];
+    let repo_path = if args.len() < 2 {
+        // Get current directory if no path provided
+        env::current_dir()?
+    } else {
+        PathBuf::from(&args[1])
+    };
 
     let mut terminal = ratatui::init();
-    let result = run(&mut terminal, &repo_path);
+    let result = run(&mut terminal, repo_path.to_str().unwrap_or("."));
     ratatui::restore();
     result
 }
