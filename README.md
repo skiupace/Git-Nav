@@ -39,7 +39,8 @@ cargo run
 
 
 <h2>Screenshots</h2>
-  ![1737829538_grim](https://github.com/user-attachments/assets/ac5f9338-77cd-4f11-91c4-447243eb1b4f)
+![1737829538_grim](https://github.com/user-attachments/assets/62923ecf-d592-4aaf-8d05-fc2a7a39720c)
+
   
 <h2>💻 Built with</h2>
 <p>Language: Rust.</p>
