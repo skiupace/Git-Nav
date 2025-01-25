@@ -8,8 +8,7 @@
   
 <h2>🧐 Features</h2>
 
-Here're some of the project's best features:
-
+Here're some of the project's best features :
 *   Syntax Highlighting
 *   Edit Files In Neovim
 
@@ -43,8 +42,7 @@ cargo run
 <h2>💻 Built with</h2>
 <p>Language: Rust.</p>
 
-Dependencies used in the project:
-
+Dependencies used in the project :
 *   crossterm
 *   git2
 *   ignore
