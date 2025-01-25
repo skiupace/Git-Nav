@@ -5,7 +5,6 @@
 <p id="description">a Simple TUI App to Navigate Through Git Repositories</p>
 
   
-  
 <h2>🧐 Features</h2>
 
 Here're some of the project's best features :
@@ -35,9 +34,12 @@ cargo run
 ```
 
 
-<h2>Screenshots</h2>
-![1737829538_grim](https://github.com/user-attachments/assets/62923ecf-d592-4aaf-8d05-fc2a7a39720c)
-
+<h2>📸 Screenshots</h2>
+<!-- for pypi only -->
+<div style="text-align: center;">
+   <a href="https://ibb.co/0rqCSGV"><img src="https://i.ibb.co/Yh2cMLT/1737829538-grim.png" alt="1737829538-grim" border="0"></a>
+<a href="https://ibb.co/s1MD3rJ"><img src="https://i.ibb.co/T0Fnh5q/1737833406-grim.png" alt="1737833406-grim" border="0"></a>
+</div>
 
 ## 👨‍💻 Usage
 
