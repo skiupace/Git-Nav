@@ -76,7 +76,7 @@ Dependencies used in the project :
 - [x] make the folders appear in *Files Tree*.
 - [ ] add two tabs *Repo* and *Help*.
 - [ ] add *Search* and *Repo Status* area.
-- [ ] add *arabic lang rendering* support.
+- [ ] add *arabic text rendering* support.
 
 
 <h2>🍰 Contribution Guidelines:</h2>
