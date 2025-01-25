@@ -72,4 +72,4 @@ please follow the <a href="https://github.com/skiupace/GitNav/blob/main/CONTRIBU
 
 <h2>🛡️ License</h2>
 
-This project is licensed under the <a href="https://github.com/skiupace/GitNav/blob/main/LICENSE.md">MIT License
+This project is licensed under the <a href="https://github.com/skiupace/GitNav/blob/main/LICENSE">MIT License
