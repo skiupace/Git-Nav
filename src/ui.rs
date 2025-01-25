@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use crossterm::terminal;
-use std::path::{Path, PathBuf};
+use std::{path::{Path, PathBuf}, thread, time};
 use std::process::Command;
 
 use crate::files::{
@@ -125,7 +125,6 @@ pub fn run(
     }
 
     let mut history: Vec<PathBuf> = Vec::new(); // Track directory history
-    let mut key_held = false;
 
     // Initialize drawable state
     let mut state = DrawableState {
@@ -136,15 +135,19 @@ pub fn run(
         right_area: Rect::new(0, 0, 0, 0),
         left_area: Rect::new(0, 0, 0, 0),
         content: Paragraph::new(""),
+        key_held: false,
+        key_held_threshold: time::Duration::from_millis(100),
+        last_key_pressed: time::Instant::now()
     };
 
     // Event loop
     loop {
+  
         // Draw the current state
         terminal.draw(|frame| draw(&mut state, frame))?;
 
         // Handle user input and update state
-        match handle_events(&mut state.selected_index, state.items.len(), &mut key_held)? {
+        match handle_events(&mut state)? {
             AppState::Quit => {
                 break Ok(());
             }
@@ -201,6 +204,13 @@ pub fn run(
                 if state.selected_index.is_some() {
                     terminal.clear()?;
                 }
+            }
+
+            AppState::Relax => {
+                // Calculate the time left until we exceed the key held threshold
+                let elapsed = state.last_key_pressed.elapsed();
+                let time_left = state.key_held_threshold.checked_sub(elapsed).unwrap_or_else(|| time::Duration::from_millis(0));
+                thread::sleep(time_left);
             }
         }
     }
