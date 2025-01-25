@@ -38,6 +38,18 @@ cargo run
 <h2>Screenshots</h2>
 ![1737829538_grim](https://github.com/user-attachments/assets/62923ecf-d592-4aaf-8d05-fc2a7a39720c)
 
+
+## 👨‍💻 Usage
+
+#### Shortcuts
+
+| Shortcut | Description                                                                                                          |
+| --------- | -------------------------------------------------------------------------------------------------------------------- |
+| `Q`     | Quit the program                          |
+| `Enter`     | Opens the File Inside Neovim                          |
+| `Left Arrow`    | Open the folder |
+| `Right Arrow`    | Go back on step in the folders tree |
+
   
 <h2>💻 Built with</h2>
 <p>Language: Rust.</p>
