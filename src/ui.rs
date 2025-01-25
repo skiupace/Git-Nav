@@ -1,96 +1,118 @@
 use ratatui::{
-    text::Text,
-    style::{Color, Style},
     layout::{Constraint, Layout, Rect},
+    style::{Color, Style},
+    text::Text,
     widgets::{Block, Clear, List, ListItem, ListState, Paragraph},
     Frame,
 };
 
+use crossterm::terminal;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use crossterm::terminal;
 
 use crate::files::{
-    is_git_repo, 
-    get_name, 
-    get_icon, 
-    list_files_and_folders, 
-    highlight_file_content
+    get_icon, get_name, highlight_file_content, is_git_repo, list_files_and_folders,
 };
 
-use crate::events::{handle_events, AppState};
 use crate::common::Result;
+use crate::debug::Debugger;
+use crate::events::{handle_events, AppState};
+use crate::ui_state::DrawableState;
 
-
-fn draw_on_clear(frame: &mut Frame, area: Rect, content: Paragraph) {
-    frame.render_widget(Clear, area);
-    frame.render_widget(content, area);
+fn draw_on_clear(state: &mut DrawableState, frame: &mut Frame) {
+    frame.render_widget(Clear, state.area);
+    frame.render_widget(state.content.clone(), state.area);
 }
 
-fn draw(frame: &mut Frame, items: &[PathBuf], selected_index: Option<usize>, current_path: &Path) {
-    use Constraint::{Fill, Length, Min};
-
-    let vertical = Layout::vertical([Length(1), Min(0)]);
-    let [_title_area, main_area] = vertical.areas(frame.area());
-    let horizontal = Layout::horizontal([Length(40), Fill(1)]);
-    let [left_area, right_area] = horizontal.areas(main_area);
-
-    // Render the file tree with names and icons
-    let list_items: Vec<ListItem> = items
-        .iter()
-        .map(|path| {
-            let name = get_name(path);
-            let icon = get_icon(path);
-            ListItem::new(format!("{} {}", icon, name)) // Combine icon and name
-        })
-        .collect();
-
-    let list = List::new(list_items)
-        .block(
-            Block::bordered().title(
-                format!("Files Tree: {}", 
-                    current_path.file_name()
-                        .unwrap_or_default() // Handle cases where there's no file name
-                        .to_string_lossy()
-                )
-            )
-        )
-        .highlight_style(Style::default().fg(Color::Black).bg(Color::Blue));
-
-    let mut list_state = ListState::default();
-    list_state.select(selected_index);
-    frame.render_stateful_widget(list, left_area, &mut list_state);
-
-    // Render the file preview (if a file is selected)
-    let preview_content = match selected_index.and_then(|i| items.get(i)) {
+fn draw_right_side(state: &mut DrawableState, frame: &mut Frame) {
+    let preview_content = match state.selected_index.and_then(|i| state.items.get(i)) {
         Some(file) if file.is_file() => {
             let file_name = get_name(file);
-            let content = file.to_str()
+            let content = file
+                .to_str()
                 .and_then(|path| highlight_file_content(path).ok())
                 .unwrap_or_else(|| Text::from("Unable to read file"));
-        
+
             Paragraph::new(content)
                 .block(Block::bordered().title(format!("File Preview: {file_name}")))
         }
 
-        Some(_) => {  // Directory selected
+        Some(_) => {
+            // Directory selected
             Paragraph::new("Select a file to preview")
                 .block(Block::bordered().title("File Preview"))
         }
 
-        None => {  // No valid selection
-            Paragraph::new(selected_index
-                .map(|_| "No file selected")
-                .unwrap_or("Select a file to view it")
+        None => {
+            // No valid selection
+            Paragraph::new(
+                state
+                    .selected_index
+                    .map(|_| "No file selected")
+                    .unwrap_or("Select a file to view it"),
             )
             .block(Block::bordered().title("File Preview"))
         }
     };
-    
-    draw_on_clear(frame, right_area, preview_content);
+
+    draw_on_clear(state, frame);
 }
 
-pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, repo_path: &str) -> Result<()> {
+fn draw_left_side(state: &mut DrawableState, frame: &mut Frame) {
+    let list_items: Vec<ListItem> = state
+        .items
+        .iter()
+        .map(|path| {
+            let name = get_name(path);
+            let icon = get_icon(path);
+            ListItem::new(format!("{} {}", icon, name))
+        })
+        .collect();
+
+    // Left side | Render the file tree
+    let list = List::new(list_items)
+        .block(
+            Block::bordered().title(format!(
+                "Files Tree: {} | Debug: {}",
+                state
+                    .current_path
+                    .file_name()
+                    .unwrap_or_default()
+                    .to_string_lossy(),
+                state.debug.get_data()
+            )),
+        )
+        .highlight_style(Style::default().fg(Color::Black).bg(Color::Blue));
+    let mut list_state = ListState::default();
+    list_state.select(state.selected_index);
+    frame.render_stateful_widget(list, state.left_area, &mut list_state);
+}
+
+fn draw(state: &mut DrawableState, frame: &mut Frame) {
+    use Constraint::{Fill, Length, Min};
+
+    // Calculate the areas of the terminal
+    let vertical = Layout::vertical([Length(1), Min(0)]);
+    let [_title_area, main_area] = vertical.areas(state.area);
+    let horizontal = Layout::horizontal([Length(40), Fill(1)]);
+    let [left_area, right_area] = horizontal.areas(main_area);
+
+    // Assign the areas to the state
+    state.area = main_area;
+    state.left_area = left_area;
+    state.right_area = right_area;
+
+    // Left side | Render the file tree
+    draw_left_side(state, frame);
+
+    // Right side | Render the file preview (if a file is selected)
+    draw_right_side(state, frame);
+}
+
+pub fn run(
+    terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>,
+    repo_path: &str,
+) -> Result<()> {
     // Validate the Git repository path
     let path = Path::new(repo_path);
 
@@ -98,23 +120,34 @@ pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, rep
         return Err(format!("Not a git repository: {}", repo_path).into());
     }
 
-    let mut current_path = path.to_path_buf();
     let mut history: Vec<PathBuf> = Vec::new(); // Track directory history
-    let mut items = list_files_and_folders(&current_path);
-    let mut selected_index = Some(0);
     let mut key_held = false;
 
-    loop {
-        terminal.draw(|frame| draw(frame, &items, selected_index, &current_path))?;
+    // Initialize drawable state
+    let mut state = DrawableState {
+        items: list_files_and_folders(path),
+        selected_index: Some(0),
+        current_path: path.to_path_buf(),
+        debug: Debugger::new(),
+        area: Rect::new(0, 0, 0, 0),
+        right_area: Rect::new(0, 0, 0, 0),
+        left_area: Rect::new(0, 0, 0, 0),
+        content: Paragraph::new(""),
+    };
 
-        match handle_events(&mut selected_index, items.len(), &mut key_held)? {
+    // Event loop
+    loop {
+        terminal.draw(|f| draw(&mut state, f))?;
+
+        // Handle user input
+        match handle_events(&mut state.selected_index, state.items.len(), &mut key_held)? {
             AppState::Quit => {
                 break Ok(());
             }
 
             AppState::OpenNvim => {
-                if let Some(index) = selected_index {
-                    if let Some(file) = items.get(index) {
+                if let Some(index) = state.selected_index {
+                    if let Some(file) = state.items.get(index) {
                         if file.is_file() {
                             // Save terminal state
                             terminal.clear()?;
@@ -138,20 +171,20 @@ pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, rep
 
             AppState::GoBack => {
                 if let Some(prev_path) = history.pop() {
-                    current_path = prev_path;
-                    items = list_files_and_folders(&current_path);
-                    selected_index = Some(0);
+                    state.current_path = prev_path;
+                    state.items = list_files_and_folders(&state.current_path);
+                    state.selected_index = Some(0);
                 }
             }
 
             AppState::GoForward => {
-                if let Some(index) = selected_index {
-                    if let Some(path) = items.get(index) {
+                if let Some(index) = state.selected_index {
+                    if let Some(path) = state.items.get(index) {
                         if path.is_dir() {
-                            history.push(current_path.clone());
-                            current_path = path.clone();
-                            items = list_files_and_folders(&current_path);
-                            selected_index = Some(0);
+                            history.push(state.current_path.clone());
+                            state.current_path = path.clone();
+                            state.items = list_files_and_folders(&state.current_path);
+                            state.selected_index = Some(0);
                         }
                     }
                 }
