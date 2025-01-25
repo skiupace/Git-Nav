@@ -71,6 +71,7 @@ Dependencies used in the project :
 
 
 <h2>⏳ Todo List</h2>
+
 - [x] add *path* validator.
 - [x] make the folders appear in *Files Tree*.
 - [ ] add two tabs *Repo* and *Help*.
