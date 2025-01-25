@@ -43,6 +43,11 @@ cargo run
 
 ## 👨‍💻 Usage
 
+### Main Usage
+```bash
+git-nav [path to the git repo]
+```
+
 #### Shortcuts
 
 | Shortcut | Description                                                                                                          |
