@@ -1,5 +1,5 @@
 [package]
-name = "git-tui"
+name = "git-nav"
 version = "0.1.0"
 edition = "2021"
 

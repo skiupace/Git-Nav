@@ -1,8 +1,8 @@
 use std::env;
 use std::path::PathBuf;
 
-use git_tui::ui::run;
-use git_tui::common::Result;
+use git_nav::ui::run;
+use git_nav::common::Result;
 
 
 fn main() -> Result<()> {
