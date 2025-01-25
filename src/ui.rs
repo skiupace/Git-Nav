@@ -137,7 +137,6 @@ pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, rep
             }
 
             AppState::GoBack => {
-                // Navigate back to the previous folder
                 if let Some(prev_path) = history.pop() {
                     current_path = prev_path;
                     items = list_files_and_folders(&current_path);
@@ -146,7 +145,6 @@ pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, rep
             }
 
             AppState::GoForward => {
-                // Navigate into the selected folder
                 if let Some(index) = selected_index {
                     if let Some(path) = items.get(index) {
                         if path.is_dir() {
