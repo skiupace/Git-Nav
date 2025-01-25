@@ -131,12 +131,6 @@ pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, rep
                             terminal::enable_raw_mode()?;
                             terminal.hide_cursor()?;
                             terminal.clear()?;
-                        } else if file.is_dir() {
-                            // Navigate into the folder
-                            history.push(current_path.clone());
-                            current_path = file.clone();
-                            items = list_files_and_folders(&current_path);
-                            selected_index = Some(0);
                         }
                     }
                 }
@@ -148,6 +142,20 @@ pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, rep
                     current_path = prev_path;
                     items = list_files_and_folders(&current_path);
                     selected_index = Some(0);
+                }
+            }
+
+            AppState::GoForward => {
+                // Navigate into the selected folder
+                if let Some(index) = selected_index {
+                    if let Some(path) = items.get(index) {
+                        if path.is_dir() {
+                            history.push(current_path.clone());
+                            current_path = path.clone();
+                            items = list_files_and_folders(&current_path);
+                            selected_index = Some(0);
+                        }
+                    }
                 }
             }
 

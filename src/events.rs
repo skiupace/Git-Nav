@@ -6,6 +6,7 @@ use crate::common::Result;
 pub enum AppState {
     KeepOpen,
     OpenNvim,
+    GoForward,
     GoBack,
     Quit
 }
@@ -41,8 +42,12 @@ pub fn handle_events(selected_index: &mut Option<usize>, file_count: usize, key_
                         return Ok(AppState::OpenNvim);
                     }
 
-                    KeyCode::Tab => {
+                    KeyCode::Left => {
                         return Ok(AppState::GoBack);
+                    }
+
+                    KeyCode::Right => {
+                        return Ok(AppState::GoForward);
                     }
 
                     _ => {}
