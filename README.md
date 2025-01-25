@@ -52,8 +52,8 @@ Dependencies used in the project :
 
 
 <h2>🍰 Contribution Guidelines:</h2>
-**Pull requests are welcome. For major changes, please open an issue first to discuss what you want to change.
-please follow the [contributing guidelines](https://github.com/skiupace/GitNav/blob/main/CONTRIBUTING.md)**
+Pull requests are welcome. For major changes, please open an issue first to discuss what you want to change.
+please follow the [contributing guidelines](https://github.com/skiupace/GitNav/blob/main/CONTRIBUTING.md)
 
 
 <h2>🛡️ License</h2>
