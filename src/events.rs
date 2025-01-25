@@ -27,7 +27,8 @@ pub fn handle_events(selected_index: &mut Option<usize>, file_count: usize, key_
                             if *index > 0 {
                                 *selected_index = Some(*index - 1);
                             }
-                        } return Ok(AppState::KeepOpen);
+                        }
+                        return Ok(AppState::KeepOpen);
                     }
 
                     KeyCode::Down => {
@@ -35,7 +36,8 @@ pub fn handle_events(selected_index: &mut Option<usize>, file_count: usize, key_
                             if *index < file_count - 1 {
                                 *selected_index = Some(*index + 1);
                             }
-                        } return Ok(AppState::KeepOpen);
+                        }
+                        return Ok(AppState::KeepOpen);
                     }
 
                     KeyCode::Enter => {

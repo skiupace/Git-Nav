@@ -15,14 +15,8 @@ use crate::files::{
 };
 
 use crate::common::Result;
-use crate::debug::Debugger;
 use crate::events::{handle_events, AppState};
 use crate::ui_state::DrawableState;
-
-fn draw_on_clear(state: &mut DrawableState, frame: &mut Frame) {
-    frame.render_widget(Clear, state.area);
-    frame.render_widget(state.content.clone(), state.area);
-}
 
 fn draw_right_side(state: &mut DrawableState, frame: &mut Frame) {
     let preview_content = match state.selected_index.and_then(|i| state.items.get(i)) {
@@ -55,7 +49,10 @@ fn draw_right_side(state: &mut DrawableState, frame: &mut Frame) {
         }
     };
 
-    draw_on_clear(state, frame);
+    // Clear the terminal on the right side
+    frame.render_widget(Clear, state.right_area);
+    // Add the preview content to the right side
+    frame.render_widget(preview_content, state.right_area);
 }
 
 fn draw_left_side(state: &mut DrawableState, frame: &mut Frame) {
@@ -65,37 +62,44 @@ fn draw_left_side(state: &mut DrawableState, frame: &mut Frame) {
         .map(|path| {
             let name = get_name(path);
             let icon = get_icon(path);
-            ListItem::new(format!("{} {}", icon, name))
+            ListItem::new(format!("{} {}", icon, name)) // Combine icon and name
         })
         .collect();
 
-    // Left side | Render the file tree
+    // List component
     let list = List::new(list_items)
-        .block(
-            Block::bordered().title(format!(
-                "Files Tree: {} | Debug: {}",
-                state
-                    .current_path
-                    .file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy(),
-                state.debug.get_data()
-            )),
-        )
+        .block(Block::bordered()
+        .title(format!("Files Tree: {}", 
+                state.current_path.file_name()
+                    .unwrap_or_default() // Handle cases where there's no file name
+                    .to_string_lossy()
+            )))
+        // Highlight style
         .highlight_style(Style::default().fg(Color::Black).bg(Color::Blue));
+
     let mut list_state = ListState::default();
     list_state.select(state.selected_index);
+    frame.render_widget(Clear, state.left_area);
     frame.render_stateful_widget(list, state.left_area, &mut list_state);
 }
 
 fn draw(state: &mut DrawableState, frame: &mut Frame) {
-    use Constraint::{Fill, Length, Min};
+    use Constraint::{Percentage, Min};
 
     // Calculate the areas of the terminal
-    let vertical = Layout::vertical([Length(1), Min(0)]);
-    let [_title_area, main_area] = vertical.areas(state.area);
-    let horizontal = Layout::horizontal([Length(40), Fill(1)]);
+    let vertical: Layout = Layout::vertical([Min(0)]);
+    let [main_area] = vertical.areas(frame.area());
+    
+    // Use percentage-based horizontal split for more flexibility
+    let horizontal = Layout::horizontal([
+        Percentage(30),  // Left panel takes 30% of the width
+        Percentage(70),  // Right panel takes 70% of the width
+    ]);
     let [left_area, right_area] = horizontal.areas(main_area);
+
+    // Clear both panels individually
+    frame.render_widget(Clear, left_area);
+    frame.render_widget(Clear, right_area);
 
     // Assign the areas to the state
     state.area = main_area;
@@ -125,10 +129,9 @@ pub fn run(
 
     // Initialize drawable state
     let mut state = DrawableState {
-        items: list_files_and_folders(path),
+        items: list_files_and_folders(&path.to_path_buf()),
         selected_index: Some(0),
         current_path: path.to_path_buf(),
-        debug: Debugger::new(),
         area: Rect::new(0, 0, 0, 0),
         right_area: Rect::new(0, 0, 0, 0),
         left_area: Rect::new(0, 0, 0, 0),
@@ -137,9 +140,10 @@ pub fn run(
 
     // Event loop
     loop {
-        terminal.draw(|f| draw(&mut state, f))?;
+        // Draw the current state
+        terminal.draw(|frame| draw(&mut state, frame))?;
 
-        // Handle user input
+        // Handle user input and update state
         match handle_events(&mut state.selected_index, state.items.len(), &mut key_held)? {
             AppState::Quit => {
                 break Ok(());
@@ -174,6 +178,7 @@ pub fn run(
                     state.current_path = prev_path;
                     state.items = list_files_and_folders(&state.current_path);
                     state.selected_index = Some(0);
+                    terminal.clear()?;  // Clear terminal before redrawing
                 }
             }
 
@@ -185,12 +190,18 @@ pub fn run(
                             state.current_path = path.clone();
                             state.items = list_files_and_folders(&state.current_path);
                             state.selected_index = Some(0);
+                            terminal.clear()?;  // Clear terminal before redrawing
                         }
                     }
                 }
             }
 
-            AppState::KeepOpen => {}
+            AppState::KeepOpen => {
+                // Force a redraw when selection changes
+                if state.selected_index.is_some() {
+                    terminal.clear()?;
+                }
+            }
         }
     }
 }
