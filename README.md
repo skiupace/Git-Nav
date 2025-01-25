@@ -12,7 +12,7 @@ Here're some of the project's best features :
 *   Syntax Highlighting
 *   Edit Files In Neovim
 
-<h2>🛠️ Installation Steps:</h2>
+<h2>🛠️ Installation Steps</h2>
 
 <p>1. Clone the repo</p>
 
@@ -50,6 +50,6 @@ Dependencies used in the project :
 *   syntect
 *   walkdir
 
-<h2>🛡️ License:</h2>
+<h2>🛡️ License</h2>
 
 This project is licensed under the MIT License
