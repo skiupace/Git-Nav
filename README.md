@@ -55,7 +55,7 @@ git-nav [path to the git repo]
 | `Q`     | Quit the program                          |
 | `Enter`     | Opens the File Inside Neovim                          |
 | `Left Arrow`    | Open the folder |
-| `Right Arrow`    | Go back on step in the folders tree |
+| `Right Arrow`    | Go back one step in the folders tree |
 
   
 <h2>💻 Built with</h2>
@@ -68,6 +68,14 @@ Dependencies used in the project :
 *   ratatui
 *   syntect
 *   walkdir
+
+
+<h2>⏳ Todo List</h2>
+- [x] add *path* validator.
+- [x] make the folders appear in *Files Tree*.
+- [ ] add two tabs *Repo* and *Help*.
+- [ ] add *Search* and *Repo Status* area.
+- [ ] add *arabic lang rendering* support.
 
 
 <h2>🍰 Contribution Guidelines:</h2>
