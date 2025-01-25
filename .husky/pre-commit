@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🦀 Building Rust project..."
+
+# Run cargo build in release mode
+if cargo build --release; then
+    echo "✅ Build successful"
+else
+    echo "❌ Build failed"
+    exit 1
+fi
+
+# Run tests to ensure everything works
+echo "🧪 Running tests..."
+if cargo test; then
+    echo "✅ Tests passed"
+else
+    echo "❌ Tests failed"
+    exit 1
+fi

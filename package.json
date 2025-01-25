@@ -1,0 +1,24 @@
+{
+  "devDependencies": {
+    "husky": "^9.1.7"
+  },
+  "scripts": {
+    "prepare": "husky"
+  },
+  "name": "git-nav",
+  "version": "1.0.0",
+  "description": "<h1 align=\"center\" id=\"title\">Git Navigator</h1>",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skiupace/Gnav.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/skiupace/Gnav/issues"
+  },
+  "homepage": "https://github.com/skiupace/Gnav#readme"
+}
