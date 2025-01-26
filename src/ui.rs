@@ -2,7 +2,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Style},
     text::Text,
-    widgets::{Block, Clear, List, ListItem, ListState, Paragraph},
+    widgets::{Block, List, ListItem, ListState, Paragraph},
     Frame,
 };
 
@@ -49,9 +49,6 @@ fn draw_right_side(state: &mut DrawableState, frame: &mut Frame) {
         }
     };
 
-    // Clear the terminal on the right side
-    frame.render_widget(Clear, state.right_area);
-    // Add the preview content to the right side
     frame.render_widget(preview_content, state.right_area);
 }
 
@@ -79,7 +76,7 @@ fn draw_left_side(state: &mut DrawableState, frame: &mut Frame) {
 
     let mut list_state = ListState::default();
     list_state.select(state.selected_index);
-    frame.render_widget(Clear, state.left_area);
+
     frame.render_stateful_widget(list, state.left_area, &mut list_state);
 }
 
@@ -96,10 +93,6 @@ fn draw(state: &mut DrawableState, frame: &mut Frame) {
         Percentage(70),  // Right panel takes 70% of the width
     ]);
     let [left_area, right_area] = horizontal.areas(main_area);
-
-    // Clear both panels individually
-    frame.render_widget(Clear, left_area);
-    frame.render_widget(Clear, right_area);
 
     // Assign the areas to the state
     state.area = main_area;
