@@ -67,39 +67,51 @@ pub fn highlight_file_content(file_path: &str) -> Result<Text> {
     // Load syntax definitions and theme
     let ps = SyntaxSet::load_defaults_newlines();
     let ts = ThemeSet::load_defaults();
-    let theme = &ts.themes["base16-ocean.dark"]; // Choose a theme
+    let theme = &ts.themes["base16-ocean.dark"];
 
-    // Find the syntax for the file
-    let syntax = ps.find_syntax_for_file(file_path)?
-        .unwrap_or_else(|| ps.find_syntax_plain_text());
+    // Read the file content first
+    let content = fs::read_to_string(file_path)?;
+
+    // Find the syntax for the file, with explicit markdown handling
+    let syntax = if file_path.ends_with(".md") {
+        ps.find_syntax_by_extension("md")
+    } else {
+        ps.find_syntax_for_file(file_path)?
+    }.unwrap_or_else(|| ps.find_syntax_plain_text());
 
     // Create a highlighter
     let mut h = HighlightLines::new(syntax, theme);
 
-    // Read the file content
-    let content = fs::read_to_string(file_path)?;
-
     // Highlight the content (with a line limit)
     let mut highlighted_lines = Vec::new();
-    let max_lines = 100; // Limit the number of lines rendered
+    let max_lines = 500; // Increased line limit for larger files
+    
     for (line_number, line) in LinesWithEndings::from(&content).enumerate() {
         if line_number >= max_lines {
+            highlighted_lines.push(Line::from("... (file truncated for performance)"));
             break;
         }
 
-        let ranges = h.highlight_line(line, &ps)?;
-        let spans = ranges
-            .into_iter()
-            .map(|(style, text)| {
-                Span::styled(
-                    text.to_string(),
-                    Style::default()
-                        .fg(Color::Rgb(style.foreground.r, style.foreground.g, style.foreground.b))
-                        .bg(Color::Reset),
-                )
-            })
-            .collect::<Vec<_>>();
-        highlighted_lines.push(Line::from(spans));
+        match h.highlight_line(line, &ps) {
+            Ok(ranges) => {
+                let spans = ranges
+                    .into_iter()
+                    .map(|(style, text)| {
+                        Span::styled(
+                            text.to_string(),
+                            Style::default()
+                                .fg(Color::Rgb(style.foreground.r, style.foreground.g, style.foreground.b))
+                                .bg(Color::Reset),
+                        )
+                    })
+                    .collect::<Vec<_>>();
+                highlighted_lines.push(Line::from(spans));
+            }
+            Err(_) => {
+                // Fallback for lines that fail to highlight
+                highlighted_lines.push(Line::from(line.to_string()));
+            }
+        }
     }
 
     Ok(Text::from(highlighted_lines))
