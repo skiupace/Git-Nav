@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 echo "🦀 Building Rust project..."
 
 # Run cargo build in release mode
