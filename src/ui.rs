@@ -1,14 +1,20 @@
 use ratatui::{
-    layout::{Constraint, Layout, Rect},
-    style::{Color, Style},
-    text::Text,
-    widgets::{Block, List, ListItem, ListState, Paragraph},
     Frame,
+    text::Text,
+    style::{Color, Style},
+    layout::{Constraint, Layout, Rect},
+    widgets::{Block, List, ListItem, ListState, Paragraph},
 };
 
-use crossterm::terminal;
-use std::{path::{Path, PathBuf}, thread, time};
+use crossterm::{
+    cursor,
+    terminal,
+    QueueableCommand,
+};
+
 use std::process::Command;
+use std::io::{self, Write};
+use std::{path::{Path, PathBuf}, thread, time};
 
 use crate::files::{
     get_icon, get_name, highlight_file_content, is_git_repo, list_files_and_folders,
@@ -16,7 +22,40 @@ use crate::files::{
 
 use crate::common::Result;
 use crate::events::{handle_events, AppState};
-use crate::ui_state::DrawableState;
+use crate::ui_state::{DrawableState, InputMode, FrameState};
+
+
+fn render_frame_diff(state: &mut DrawableState, frame: &mut Frame, stdout: &mut impl Write) -> Result<()> {
+    let current_buffer = frame.buffer_mut();
+    
+    if !state.frame_state.initialized {
+        // First frame - draw everything
+        stdout.queue(cursor::MoveTo(0, 0))?;
+        terminal::enable_raw_mode()?;
+        // Just store the buffer for future diffs
+        state.frame_state.buffer = current_buffer.clone();
+        state.frame_state.initialized = true;
+    } else {
+        // Calculate and draw only the differences
+        let previous_buffer = &state.frame_state.buffer;
+        
+        for y in 0..current_buffer.area().height {
+            for x in 0..current_buffer.area().width {
+                let current_cell = &current_buffer[(x, y)];
+                let previous_cell = &previous_buffer[(x, y)];
+                
+                if current_cell != previous_cell {
+                    stdout.queue(cursor::MoveTo(x, y))?;
+                    write!(stdout, "{}", current_cell.symbol())?;
+                }
+            }
+        }
+    }
+    
+    stdout.flush()?;
+    state.frame_state.buffer = current_buffer.clone();
+    Ok(())
+}
 
 fn draw_right_side(state: &mut DrawableState, frame: &mut Frame) {
     let preview_content = match state.selected_index.and_then(|i| state.items.get(i)) {
@@ -63,13 +102,20 @@ fn draw_left_side(state: &mut DrawableState, frame: &mut Frame) {
         })
         .collect();
 
+    // Add mode indicator to the title
+    let mode_indicator = match state.input_mode {
+        InputMode::Normal => "Normal",
+        InputMode::Vim => "Vim",
+    };
+
     // List component
     let list = List::new(list_items)
         .block(Block::bordered()
-        .title(format!("Files Tree: {}", 
+        .title(format!("Files Tree: {} [{}]", 
                 state.current_path.file_name()
                     .unwrap_or_default() // Handle cases where there's no file name
-                    .to_string_lossy()
+                    .to_string_lossy(),
+                mode_indicator
             )))
         // Highlight style
         .highlight_style(Style::default().fg(Color::Black).bg(Color::Blue));
@@ -106,10 +152,7 @@ fn draw(state: &mut DrawableState, frame: &mut Frame) {
     draw_right_side(state, frame);
 }
 
-pub fn run(
-    terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>,
-    repo_path: &str,
-) -> Result<()> {
+pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, repo_path: &str) -> Result<()> {
     // Validate the Git repository path
     let path = Path::new(repo_path);
 
@@ -130,14 +173,19 @@ pub fn run(
         content: Paragraph::new(""),
         key_held: false,
         key_held_threshold: time::Duration::from_millis(100),
-        last_key_pressed: time::Instant::now()
+        last_key_pressed: time::Instant::now(),
+        input_mode: InputMode::Normal,
+        frame_state: FrameState::new()
     };
 
     // Event loop
+    let mut stdout = io::stdout();
     loop {
-  
         // Draw the current state
-        terminal.draw(|frame| draw(&mut state, frame))?;
+        terminal.draw(|frame| {
+            draw(&mut state, frame);
+            render_frame_diff(&mut state, frame, &mut stdout).unwrap();
+        })?;
 
         // Handle user input and update state
         match handle_events(&mut state)? {
@@ -145,12 +193,16 @@ pub fn run(
                 break Ok(());
             }
 
+            AppState::ToggleMode => {
+                stdout.queue(cursor::MoveTo(0, 0))?;
+            }
+
             AppState::OpenNvim => {
                 if let Some(index) = state.selected_index {
                     if let Some(file) = state.items.get(index) {
                         if file.is_file() {
                             // Save terminal state
-                            terminal.clear()?;
+                            stdout.queue(cursor::MoveTo(0, 0))?;
                             terminal::disable_raw_mode()?;
                             terminal.show_cursor()?;
 
@@ -170,15 +222,16 @@ pub fn run(
             }
 
             AppState::GoBack => {
+                stdout.queue(cursor::MoveTo(0, 0))?;
                 if let Some(prev_path) = history.pop() {
                     state.current_path = prev_path;
                     state.items = list_files_and_folders(&state.current_path);
                     state.selected_index = Some(0);
-                    terminal.clear()?;  // Clear terminal before redrawing
                 }
             }
 
             AppState::GoForward => {
+                stdout.queue(cursor::MoveTo(0, 0))?;
                 if let Some(index) = state.selected_index {
                     if let Some(path) = state.items.get(index) {
                         if path.is_dir() {
@@ -186,23 +239,23 @@ pub fn run(
                             state.current_path = path.clone();
                             state.items = list_files_and_folders(&state.current_path);
                             state.selected_index = Some(0);
-                            terminal.clear()?;  // Clear terminal before redrawing
                         }
                     }
                 }
             }
 
             AppState::KeepOpen => {
-                // Force a redraw when selection changes
                 if state.selected_index.is_some() {
-                    terminal.clear()?;
+                    stdout.queue(cursor::MoveTo(0, 0))?;
                 }
             }
 
             AppState::Relax => {
-                // Calculate the time left until we exceed the key held threshold
                 let elapsed = state.last_key_pressed.elapsed();
-                let time_left = state.key_held_threshold.checked_sub(elapsed).unwrap_or_else(|| time::Duration::from_millis(0));
+                let time_left = state
+                    .key_held_threshold
+                    .checked_sub(elapsed)
+                    .unwrap_or_else(|| time::Duration::from_millis(0));
                 thread::sleep(time_left);
             }
         }
