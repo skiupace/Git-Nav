@@ -3,18 +3,15 @@
  * Encapsulates the data and state related to drawing or rendering.
 */ 
 
-use ratatui::widgets::Paragraph;
-use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use ratatui::{
+    widgets::Paragraph, 
+    buffer::Buffer, 
+    layout::Rect
+};
+
 use std::path::PathBuf;
 use std::time;
 
-
-#[derive(PartialEq)]
-pub enum InputMode {
-    Normal,
-    Vim
-}
 
 pub struct FrameState {
     pub buffer: Buffer,
@@ -51,8 +48,6 @@ pub struct DrawableState<'a> {
     pub key_held_threshold: time::Duration,
     // Last time the key was pressed
     pub last_key_pressed: time::Instant,
-    // Switch between normal key bindings and vim bindings
-    pub input_mode: InputMode,
     // Store the previous frame state
     pub frame_state: FrameState
 }

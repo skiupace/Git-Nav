@@ -17,12 +17,16 @@ use std::io::{self, Write};
 use std::{path::{Path, PathBuf}, thread, time};
 
 use crate::files::{
-    get_icon, get_name, highlight_file_content, is_git_repo, list_files_and_folders,
+    get_icon, 
+    get_name, 
+    is_git_repo, 
+    highlight_file_content, 
+    list_files_and_folders
 };
 
 use crate::common::Result;
 use crate::events::{handle_events, AppState};
-use crate::ui_state::{DrawableState, InputMode, FrameState};
+use crate::ui_state::{DrawableState, FrameState};
 
 
 fn render_frame_diff(state: &mut DrawableState, frame: &mut Frame, stdout: &mut impl Write) -> Result<()> {
@@ -102,20 +106,13 @@ fn draw_left_side(state: &mut DrawableState, frame: &mut Frame) {
         })
         .collect();
 
-    // Add mode indicator to the title
-    let mode_indicator = match state.input_mode {
-        InputMode::Normal => "Normal",
-        InputMode::Vim => "Vim",
-    };
-
     // List component
     let list = List::new(list_items)
         .block(Block::bordered()
-        .title(format!("Files Tree: {} [{}]", 
+        .title(format!("Files Tree: {}", 
                 state.current_path.file_name()
                     .unwrap_or_default() // Handle cases where there's no file name
                     .to_string_lossy(),
-                mode_indicator
             )))
         // Highlight style
         .highlight_style(Style::default().fg(Color::Black).bg(Color::Blue));
@@ -174,7 +171,6 @@ pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, rep
         key_held: false,
         key_held_threshold: time::Duration::from_millis(100),
         last_key_pressed: time::Instant::now(),
-        input_mode: InputMode::Normal,
         frame_state: FrameState::new()
     };
 
@@ -191,10 +187,6 @@ pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, rep
         match handle_events(&mut state)? {
             AppState::Quit => {
                 break Ok(());
-            }
-
-            AppState::ToggleMode => {
-                stdout.queue(cursor::MoveTo(0, 0))?;
             }
 
             AppState::OpenNvim => {
