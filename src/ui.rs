@@ -194,7 +194,11 @@ pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, rep
                     if let Some(file) = state.items.get(index) {
                         if file.is_file() {
                             // Save terminal state
-                            stdout.queue(cursor::MoveTo(0, 0))?;
+                            if cfg!(target_os = "windows") {
+                                terminal.clear()?;
+                            } else {
+                                stdout.queue(cursor::MoveTo(0, 0))?;
+                            }
                             terminal::disable_raw_mode()?;
                             terminal.show_cursor()?;
 
@@ -214,7 +218,11 @@ pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, rep
             }
 
             AppState::GoBack => {
-                stdout.queue(cursor::MoveTo(0, 0))?;
+                if cfg!(target_os = "windows") {
+                    terminal.clear()?;
+                } else {
+                    stdout.queue(cursor::MoveTo(0, 0))?;
+                }
                 if let Some(prev_path) = history.pop() {
                     state.current_path = prev_path;
                     state.items = list_files_and_folders(&state.current_path);
@@ -223,7 +231,11 @@ pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, rep
             }
 
             AppState::GoForward => {
-                stdout.queue(cursor::MoveTo(0, 0))?;
+                if cfg!(target_os = "windows") {
+                    terminal.clear()?;
+                } else {
+                    stdout.queue(cursor::MoveTo(0, 0))?;
+                }
                 if let Some(index) = state.selected_index {
                     if let Some(path) = state.items.get(index) {
                         if path.is_dir() {
@@ -238,7 +250,11 @@ pub fn run(terminal: &mut ratatui::Terminal<impl ratatui::backend::Backend>, rep
 
             AppState::KeepOpen => {
                 if state.selected_index.is_some() {
-                    stdout.queue(cursor::MoveTo(0, 0))?;
+                    if cfg!(target_os = "windows") {
+                        terminal.clear()?;
+                    } else {
+                        stdout.queue(cursor::MoveTo(0, 0))?;
+                    }
                 }
             }
 
